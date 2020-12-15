@@ -1,0 +1,6 @@
+{
+  "name": "inbenta-slack-test",
+  "description": "Slack integration for Inbenta chatbots",
+  "addons": [],
+  "scripts": {}
+}

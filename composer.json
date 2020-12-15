@@ -1,0 +1,21 @@
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:inbenta-integrations/chatbot_api_connector.git"
+        }
+    ],
+    "require": {
+        "php": "^7.3",
+        "inbenta/chatbot-api-connector": "dev-master",
+        "ext-json": "*",
+        "ext-dom": "*",
+        "ext-curl": "*"
+    },
+    "autoload":{
+        "psr-4": {
+            "Inbenta\\SlackConnector\\": "lib/SlackConnector",
+            "Inbenta\\GCalendarSlackConnector\\": "lib/GCalendarSlackConnector"
+        }
+    }
+}
