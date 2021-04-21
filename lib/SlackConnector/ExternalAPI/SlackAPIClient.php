@@ -11,6 +11,10 @@ use Psr\Http\Message\ResponseInterface;
 class SlackAPIClient
 {
 
+    public $email;
+    public $fullName;
+    public $extraInfo;
+
     /**
      * The Slack API URL.
      *
@@ -406,33 +410,29 @@ class SlackAPIClient
     }
 
     /**
-     * Returns the full name of the user (first + last name)
-     *
-     * @return string | null
-     *
-     * @throws GuzzleException
+     *   Returns the full name of the user (first + last name)
      */
-    public function getFullName(): ?string
+    public function getFullName()
     {
-        if (!$this->getSender('real_name') && $this->getSender('id')) {
-            $this->setSenderFromId($this->getSender('id'));
-        }
-        return $this->getSender('real_name');
+        return $this->fullName;
     }
 
     /**
-     * Return the current user email address if available
-     *
-     * @return string
-     *
-     * @throws GuzzleException
+     *   Returns the user email or a default email made with the external ID
+     *   @return string
      */
-    public function getEmail(): ?string
+    public function getEmail()
     {
-        if (!$this->getSender('email') && $this->getSender('id')) {
-            $this->setSenderFromId($this->getSender('id'));
-        }
-        return $this->getSender('email');
+        return $this->email;
+    }
+
+    /**
+     *   Returns the extra info data
+     *   @return Array
+     */
+    public function getExtraInfo()
+    {
+        return $this->extraInfo;
     }
 
     /**
@@ -444,6 +444,39 @@ class SlackAPIClient
     public function getExternalId(): string
     {
         return 'slack-' . $this->channel . '-' . $this->getSender('id');
+    }
+
+    /**
+     * Set full name attribute
+     *
+     * @param String $fullName
+     * @return void
+     */
+    public function setFullName($fullName)
+    {
+        $this->fullName = $fullName;
+    }
+
+    /**
+     * Set extra info attributes
+     *
+     * @param Array $extraInfo
+     * @return void
+     */
+    public function setExtraInfo($extraInfo)
+    {
+        $this->extraInfo = $extraInfo;
+    }
+
+    /**
+     * Set email attribute
+     *
+     * @param String $email
+     * @return void
+     */
+    public function setEmail($email)
+    {
+        $this->email = $email;
     }
 
     /**
@@ -572,6 +605,30 @@ class SlackAPIClient
     public function sendAttachmentMessageFromHyperChat(array $attachment)
     {
         $this->fileUpload($attachment);
+    }
+
+    /**
+     * Get file from slack
+     * @param string $fileUrl
+     */
+    public function getFileFromSlack(string $fileUrl)
+    {
+        try {
+            $headers = [
+                'Authorization' => 'Bearer ' . $this->appAccessToken,
+            ];
+            $client = new Guzzle();
+            $response = $client->get($fileUrl, [
+                'headers' => $headers
+            ]);
+
+            if (method_exists($response, 'getBody') && method_exists($response->getBody(), 'getContents')) {
+                return $response->getBody()->getContents();
+            }
+            return '';
+        } catch(GuzzleException $e) {
+            return '';
+        }
     }
 
     /**

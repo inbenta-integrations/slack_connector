@@ -66,6 +66,7 @@ class SlackConnector extends ChatbotConnector
                     $this->conf,
                     $this->externalClient
                 );
+                $this->returnOkResponse();
                 $chatEventsHandler->handleChatEvent();
             } else if (isset($_SERVER['HTTP_X_HOOK_SIGNATURE']) && $_SERVER['HTTP_X_HOOK_SIGNATURE'] == $this->conf->get('chat.messenger.webhook_secret')) {
                 $messengerAPI = new MessengerAPI($this->conf, $this->lang, $externalDigester, $this->session);
@@ -79,6 +80,9 @@ class SlackConnector extends ChatbotConnector
             // Instance application components
             // Instance Slack client
             $externalClient = new SlackAPIClient($externalDigester->getRequest(false), $this->conf->get('slack.access_token'),);
+
+            $externalDigester->setExternalClient($externalClient);
+
             // Instance HyperchatClient for Slack
             $chatClient = new SlackHyperChatClient(
                 $this->conf->get('chat.chat'),
@@ -120,8 +124,8 @@ class SlackConnector extends ChatbotConnector
      */
     protected function shouldHandleRequest(object $request): bool
     {
-        // sometimes the bot sends a request using it's identification a this count a
-        // user request, so we shouldn't handle this kind of request
+        // sometimes the bot sends a request using it's identification
+        // so we shouldn't handle this kind of request
         if (isset($request->event->bot_profile)) {
             return false;
         }

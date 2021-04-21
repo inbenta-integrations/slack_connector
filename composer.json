@@ -7,7 +7,7 @@
     ],
     "require": {
         "php": "^7.3",
-        "inbenta/chatbot-api-connector": "dev-master",
+        "inbenta/chatbot-api-connector": "1.3.12",
         "ext-json": "*",
         "ext-dom": "*",
         "ext-curl": "*"

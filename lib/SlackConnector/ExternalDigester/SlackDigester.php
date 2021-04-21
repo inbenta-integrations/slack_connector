@@ -3,9 +3,7 @@
 namespace Inbenta\SlackConnector\ExternalDigester;
 
 use DOMDocument;
-use DOMElement;
 use DOMNode;
-use DOMNodeList;
 use DOMText;
 use \Exception;
 use Inbenta\ChatbotConnector\ExternalDigester\Channels\DigesterInterface;
@@ -19,6 +17,7 @@ class SlackDigester extends DigesterInterface
     protected $channel;
     /** @var LanguageManager */
     protected $langManager;
+    protected $externalClient;
     protected $externalMessageTypes = array(
         'text',
         'button',
@@ -35,6 +34,13 @@ class SlackDigester extends DigesterInterface
         'extendedContentsAnswer',
     ];
 
+    protected $attachableFormats = [
+        'jpg', 'jpeg', 'png', 'gif',
+        'pdf', 'xls', 'xlsx', 'doc', 'docx',
+        'mp4', 'avi',
+        'mp3'
+    ];
+
     const BLOCK_KIT_BUTTON_STYLE_EMPTY = '';
     const BLOCK_KIT_BUTTON_STYLE_PRIMARY = 'primary';
     const BLOCK_KIT_BUTTON_STYLE_DANGER = 'danger';
@@ -45,6 +51,14 @@ class SlackDigester extends DigesterInterface
         $this->channel = 'Slack';
         $this->conf = $conf;
         $this->session = $session;
+    }
+
+    /**
+     * Sets the external client
+     */
+    public function setExternalClient($externalClient)
+    {
+        $this->externalClient = $externalClient;
     }
 
     /**
@@ -149,6 +163,13 @@ class SlackDigester extends DigesterInterface
 
         $digestedMessage = $this->$digester($message);
         $output[] = $digestedMessage;
+
+        if (isset($output[0]['message']) && isset($output[0]['media'])) {
+            $output = [
+                0 => ["message" => $output[0]['message']],
+                1 => ["media" => $output[0]['media']]
+            ];
+        }
 
         return $output;
     }
@@ -376,21 +397,22 @@ class SlackDigester extends DigesterInterface
      */
     protected function digestFromSlackText($message)
     {
+        $output = ['message' => ''];
+
         if ($message->text !== '') {
-            return array(
-                'message' => $message->text
-            );
-        } else {
-            if (isset($message->files)) {
-                return array(
-                    'message' => $message->files[0]->preview
-                );
+            $output['message'] = $message->text;
+        }
+        if (isset($message->files)) {
+            $tmp = $this->mediaFileToHyperchat($message->files[0]);
+            if (isset($tmp['media'])) {
+                $output['media'] = $tmp['media'];
             }
         }
+        if (!$this->session->get('chatOnGoing', false) && $output['message'] === '') {
+            die;
+        }
 
-        return array(
-            'message' => ''
-        );
+        return $output;
     }
 
     /**
@@ -1486,5 +1508,48 @@ class SlackDigester extends DigesterInterface
         }
         $message_notification = strlen($message_notification) > 50 ? substr($message_notification, 0, 47) . "..." : $message_notification;
         return $message_notification;
+    }
+
+    /**
+     * Check if Hyperchat is running and if the attached file is correct
+     * @param object $request
+     * @return array $output
+     */
+    protected function mediaFileToHyperchat(object $fileData)
+    {
+        $output = [];
+        if ($this->session->get('chatOnGoing', false)) {
+            $mediaFile = $this->getMediaFile($fileData);
+            if ($mediaFile !== "") {
+                $output = ['media' => $mediaFile];
+            }
+        }
+        return $output;
+    }
+
+    /**
+     * Get the media file from Slack response, 
+     * save file into temporal directory to sent to Hyperchat
+     * @param object $fileData
+     */
+    protected function getMediaFile(object $fileData)
+    {
+        if (
+            isset($fileData->url_private) && isset($fileData->filetype) && in_array($fileData->filetype, $this->attachableFormats)
+        ) {
+            $fileRaw = $this->externalClient->getFileFromSlack($fileData->url_private);
+            if ($fileRaw !== "") {
+                $uniqueName = str_replace(" ", "", microtime(false));
+                $uniqueName = str_replace("0.", "", $uniqueName);
+                $fileName = sys_get_temp_dir() . "/file" . $uniqueName . "." . $fileData->filetype;
+                $tmpFile = fopen($fileName, "w") or die;
+                fwrite($tmpFile, $fileRaw);
+                $fileRaw = fopen($fileName, 'r');
+                @unlink($fileName);
+
+                return $fileRaw;
+            }
+        }
+        return "";
     }
 }

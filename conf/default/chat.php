@@ -14,10 +14,7 @@ return [
         'guestContact' => '',
         'regionServer' => 'us',
         'server' => 'hyperchat-{region}.inbenta.chat', // Your HyperChat server URL (ask your contact person at Inbenta)
-        'server_port' => 443,
-        'queue' => [
-            'active' => false
-        ]
+        'server_port' => 443
     ],
     'triesBeforeEscalation' => 0,
     'negativeRatingsBeforeEscalation' => 0,

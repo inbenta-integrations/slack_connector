@@ -1,7 +1,7 @@
 <?php
 
 //Inbenta API configuration
-return array(
+return [
     'key'    => '',
     'secret' => ''
-);
+];
